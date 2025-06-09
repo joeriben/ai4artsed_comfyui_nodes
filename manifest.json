@@ -1,0 +1,30 @@
+{
+  "name": "ai4artsed-nodes",
+  "display_name": "AI4ArtsEd Nodes",
+  "version": "0.6",
+  "author": "Prof. Dr. Benjamin Jörissen",
+  "description": "ComfyUI nodes for the project AI for Arts Education",
+  "license": "EUPL-1.2",
+  "requirements": [
+    "ollama"
+  ],
+  "nodes": [
+    "ai4artsed_ollama",
+    "ai4artsed_ollama_imageanalysis",
+    "ai4artsed_openrouter",
+    "ai4artsed_openrouter_imageanalysis",
+    "ai4artsed_text_remix",
+    "ai4artsed_random_instruction_generator",
+    "ai4artsed_random_artform_generator",
+    "ai4artsed_random_language_selector",
+    "ai4artsed_openrouter_key",
+    "ai4artsed_prompt_interception"
+  ],
+  "extra_info": {
+    "ai4artsed_openrouter": "Requires a valid OpenRouter API key provided at runtime.",
+    "ai4artsed_openrouter_imageanalysis": "Requires a valid OpenRouter API key provided at runtime.",
+    "ai4artsed_openrouter_key": "Loads the OpenRouter API key from a local file 'openrouter.key'. No environment variables are used.",
+    "ai4artsed_ollama": "Requires Ollama to be installed on your system.",
+    "ai4artsed_ollama_imageanalysis": "Requires Ollama to be installed on your system."
+  }
+}
