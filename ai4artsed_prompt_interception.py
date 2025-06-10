@@ -138,4 +138,3 @@ class ai4artsed_prompt_interception:
             print("Response received:\n", output)
 
         return (output,)
-
