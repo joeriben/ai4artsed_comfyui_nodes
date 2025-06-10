@@ -4,7 +4,15 @@ class ai4artsed_random_artform_generator:
     @classmethod
     def INPUT_TYPES(cls):
         return {
-            "required": {}
+            "required": {
+                "random_seed": ("INT", {
+                    "default": 0,
+                    "min": 0,
+                    "max": 2**31 - 1,
+                    "step": 1,
+                    "randomize": True
+                })
+            }
         }
 
     RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING")
@@ -12,7 +20,8 @@ class ai4artsed_random_artform_generator:
     FUNCTION = "generate_artforms"
     CATEGORY = "AI4ArtsEd"
 
-    def generate_artforms(self):
+    def generate_artforms(self, random_seed):
+        # optional: random.seed(random_seed) if you want reproducibility
         artforms = [
             "Rewrite this in the style of Japanese Noh theatre.",
             "Render the text as a Yoruba praise poem.",
