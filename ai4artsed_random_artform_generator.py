@@ -1,11 +1,12 @@
 import random
+import time
 
 class ai4artsed_random_artform_generator:
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                # Legacy-Input bleibt bestehen, wird aber nicht zum Seeden genutzt
+                # Legacy-Input bleibt bestehen, aber nicht relevant für Zufall
                 "random_seed": ("INT",)
             }
         }
@@ -17,12 +18,13 @@ class ai4artsed_random_artform_generator:
 
     @classmethod
     def ALWAYS_EXECUTE(cls) -> bool:
-        # Deaktiviert Node-Caching: gewährleistet Neu-Ausführung bei jedem Rendern
+        # Erzwingt immer neue Ausführung, um Caching zu verhindern
         return True
 
     def generate_artforms(self, random_seed):
-        # Echte Zufälligkeit via SystemRandom (OS-basiert, nicht gecached)
-        rng = random.SystemRandom()
+        # Zeitbasierter Seed sorgt für echte Zufälligkeit bei jedem Aufruf
+        seed = time.time_ns()
+        rng = random.Random(seed)
 
         artforms = [
             "Rewrite this in the style of Japanese Noh theatre.",
@@ -78,5 +80,5 @@ class ai4artsed_random_artform_generator:
             "Convert this into the lyrics of a British punk song."
         ]
 
-        # SystemRandom.sample wählt echte Zufallswerte (OS-Quelle)
+        # Echte Zufallsauswahl ohne Einfluss durch externe Seeds
         return tuple(rng.sample(artforms, 4))
