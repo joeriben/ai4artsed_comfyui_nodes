@@ -26,15 +26,22 @@ class ai4artsed_prompt_interception:
     @staticmethod
     def get_combined_model_list():
         openrouter_models = [
+            "anthropic/claude-3-haiku",
             "anthropic/claude-sonnet-4",
             "deepseek/deepseek-chat-v3-0324",
             "deepseek/deepseek-r1",
             "google/gemini-2.5-pro-preview",
             "meta-llama/llama-3.3-70b-instruct",
             "meta-llama/llama-guard-3-8b",
+            "meta-llama/llama-3.2-1b-instruct",
             "mistralai/mistral-medium-3",
-            "mistralai/mistral-7b-instruct",
-            "openai/o3"
+            "mistralai/mistral-small-3.1-24b-instruct",
+            "mistralai/ministral-8b",
+            "mistralai/ministral-3b",
+            "mistralai/mixtral-8x7b-instruct",
+            "openai/o3",
+            "qwen/qwen-2.5-72b-instruct",
+            "qwen/qwen-2.5-7b-instruct"
         ]
         openrouter_models = [f"openrouter/{m}" for m in openrouter_models]
 
