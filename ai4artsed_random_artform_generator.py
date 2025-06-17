@@ -5,7 +5,8 @@ class ai4artsed_random_artform_generator:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "random_seed": ("INT",)  # Anschluss an utils/primitive/int
+                # Legacy-Input bleibt bestehen, wird aber nicht zum Seeden genutzt
+                "random_seed": ("INT",)
             }
         }
 
@@ -14,9 +15,14 @@ class ai4artsed_random_artform_generator:
     FUNCTION = "generate_artforms"
     CATEGORY = "AI4ArtsEd"
 
+    @classmethod
+    def ALWAYS_EXECUTE(cls) -> bool:
+        # Deaktiviert Node-Caching: gewährleistet Neu-Ausführung bei jedem Rendern
+        return True
+
     def generate_artforms(self, random_seed):
-        # Reproduzierbarkeit optional:
-        random.seed(random_seed)
+        # Echte Zufälligkeit via SystemRandom (OS-basiert, nicht gecached)
+        rng = random.SystemRandom()
 
         artforms = [
             "Rewrite this in the style of Japanese Noh theatre.",
@@ -63,7 +69,7 @@ class ai4artsed_random_artform_generator:
             "Reimagine this as an urban legend passed through WhatsApp voice notes.",
             "Frame this as an allegory spoken during a Vodou ceremony in Haiti.",
             "Adapt this into an instructional diagram for a community mural project.",
-            "Describe the message through the choreography of a Bharatanatyam solo.",
+            "Describe the message through der choreography of a Bharatanatyam solo.",
             "Render this as a riddle spoken in a West African initiation ritual.",
             "Convert this into a sequence of protest posters made in stencil style.",
             "Compose this as a visual poem for a digital screen in public space.",
@@ -72,4 +78,5 @@ class ai4artsed_random_artform_generator:
             "Convert this into the lyrics of a British punk song."
         ]
 
-        return tuple(random.sample(artforms, 4))
+        # SystemRandom.sample wählt echte Zufallswerte (OS-Quelle)
+        return tuple(rng.sample(artforms, 4))
