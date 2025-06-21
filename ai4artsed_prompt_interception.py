@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+import re
 
 class ai4artsed_prompt_interception:
     @classmethod
@@ -12,9 +13,7 @@ class ai4artsed_prompt_interception:
                 "style_prompt": ("STRING", {"default": "", "multiline": True}),
                 "api_key": ("STRING", {"multiline": False, "password": True}),
                 "model": (cls.get_combined_model_list(),),
-                "debug": (["enable", "disable"],),
                 "unload_model": (["no", "yes"],),
-                "output_format": (["string", "float", "int", "binary"], {"default": "string"}),
             }
         }
 
@@ -70,34 +69,78 @@ class ai4artsed_prompt_interception:
         except Exception as e:
             raise Exception(f"[Prompt Interception] Fehler beim Lesen der API-Zugangsdaten: {str(e)}")
 
-    def run(self, input_prompt, input_context, style_prompt, api_key, model, debug, unload_model, output_format):
+    def run(self, input_prompt, input_context, style_prompt, api_key, model, unload_model):
         full_prompt = (
             f"Task:\n{style_prompt.strip()}\n\n"
             f"Context:\n{input_context.strip()}\nPrompt:\n{input_prompt.strip()}"
         )
 
         if model.startswith("openrouter/"):
-            output_text = self.call_openrouter(full_prompt, model.split("/", 1)[1], api_key, debug)[0]
+            output_text = self.call_openrouter(full_prompt, model.split("/", 1)[1], api_key)[0]
         elif model.startswith("local/"):
-            output_text = self.call_ollama(full_prompt, model.split("/", 1)[1], debug, unload_model)[0]
+            output_text = self.call_ollama(full_prompt, model.split("/", 1)[1], unload_model)[0]
         else:
             raise Exception(f"Unbekannter Modell-Prefix in '{model}'. Erwartet 'openrouter/' oder 'local/'.")
 
-        # Format output
-        try:
-            if output_format == "float":
-                return output_text, float(output_text), 0, False
-            elif output_format == "int":
-                return output_text, 0.0, int(output_text), False
-            elif output_format == "binary":
-                bin_val = output_text.strip().lower() in ["1", "true", "yes"]
-                return output_text, 0.0, 0, bin_val
-            else:  # string
-                return output_text, 0.0, 0, False
-        except Exception:
-            raise Exception(f"Fehler beim Konvertieren von Output '{output_text}' in das Format '{output_format}'")
+        # Formatierung: alle vier Rückgabeformate parallel mit Failsafes
+        output_str = output_text.strip()
 
-    def call_openrouter(self, prompt, model, api_key, debug):
+        # Musterdefinitionen
+        german_pattern = r"[-+]?\d{1,3}(?:\.\d{3})*,\d+"
+        english_pattern = r"[-+]?\d*\.\d+"
+        int_pattern = r"[-+]?\d+"
+
+        # Failsafe Float: deutsche Formate zuerst
+        m = re.search(german_pattern, output_str)
+        if m:
+            num = m.group()
+            normalized = num.replace(".", "").replace(",", ".")
+            try:
+                output_float = float(normalized)
+            except:
+                output_float = 0.0
+        else:
+            m = re.search(english_pattern, output_str)
+            if m:
+                try:
+                    output_float = float(m.group())
+                except:
+                    output_float = 0.0
+            else:
+                m = re.search(int_pattern, output_str)
+                if m:
+                    try:
+                        output_float = float(m.group())
+                    except:
+                        output_float = 0.0
+                else:
+                    output_float = 0.0
+
+        # Failsafe Int
+        m_int = re.search(int_pattern, output_str)
+        if m_int:
+            try:
+                output_int = int(round(float(m_int.group())))
+            except:
+                output_int = 0
+        else:
+            output_int = 0
+
+        # Failsafe Binary
+        lower = output_str.lower()
+        num_match = re.search(english_pattern, output_str) or re.search(int_pattern, output_str)
+        if (
+            "true" in lower
+            or re.search(r"\b1\b", lower)
+            or (num_match and float(num_match.group()) != 0)
+        ):
+            output_binary = True
+        else:
+            output_binary = False
+
+        return output_str, output_float, output_int, output_binary
+
+    def call_openrouter(self, prompt, model, api_key):
         api_url, real_api_key = self.get_api_credentials(api_key)
         headers = {"Authorization": f"Bearer {real_api_key}", "Content-Type": "application/json"}
         messages = [
@@ -112,16 +155,9 @@ class ai4artsed_prompt_interception:
 
         result = response.json()
         output_text = result["choices"][0]["message"]["content"]
-
-        if debug == "enable":
-            print(">>> AI4ARTSED PROMPT INTERCEPTION NODE <<<")
-            print("Model:", model)
-            print("Prompt sent:\n", prompt)
-            print("Response received:\n", output_text)
-
         return (output_text,)
 
-    def call_ollama(self, prompt, model, debug, unload_model):
+    def call_ollama(self, prompt, model, unload_model):
         payload = {"model": model, "prompt": prompt, "system": "You are a fresh assistant instance. Forget all previous conversation history.", "stream": False}
 
         try:
@@ -135,13 +171,7 @@ class ai4artsed_prompt_interception:
             try:
                 unload_payload = {"model": model, "prompt": "", "keep_alive": 0, "stream": False}
                 requests.post("http://localhost:11434/api/generate", json=unload_payload, timeout=30)
-            except Exception:
+            except:
                 pass
-
-        if debug == "enable":
-            print(">>> AI4ARTSED PROMPT INTERCEPTION NODE <<<")
-            print("Model:", model)
-            print("Prompt sent:\n", prompt)
-            print("Response received:\n", output)
 
         return (output,)
