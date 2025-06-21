@@ -13,7 +13,7 @@ class ai4artsed_prompt_interception:
                 "style_prompt": ("STRING", {"default": "", "multiline": True}),
                 "api_key": ("STRING", {"multiline": False, "password": True}),
                 "model": (cls.get_combined_model_list(),),
-                "debug": (["disable"], {"default": "disable"}),  # Dummy for legacy compatibility
+                "debug": (["enable", "disable"], {"default": "disable"}),
                 "unload_model": (["no", "yes"], {"default": "no"}),
             }
         }
@@ -77,9 +77,9 @@ class ai4artsed_prompt_interception:
         )
 
         if model.startswith("openrouter/"):
-            output_text = self.call_openrouter(full_prompt, model.split("/", 1)[1], api_key)[0]
+            output_text = self.call_openrouter(full_prompt, model.split("/", 1)[1], api_key, debug)[0]
         elif model.startswith("local/"):
-            output_text = self.call_ollama(full_prompt, model.split("/", 1)[1], unload_model)[0]
+            output_text = self.call_ollama(full_prompt, model.split("/", 1)[1], debug, unload_model)[0]
         else:
             raise Exception(f"Unbekannter Modell-Prefix in '{model}'. Erwartet 'openrouter/' oder 'local/'.")
 
@@ -141,7 +141,7 @@ class ai4artsed_prompt_interception:
 
         return output_str, output_float, output_int, output_binary
 
-    def call_openrouter(self, prompt, model, api_key):
+    def call_openrouter(self, prompt, model, api_key, debug):
         api_url, real_api_key = self.get_api_credentials(api_key)
         headers = {"Authorization": f"Bearer {real_api_key}", "Content-Type": "application/json"}
         messages = [
@@ -156,10 +156,22 @@ class ai4artsed_prompt_interception:
 
         result = response.json()
         output_text = result["choices"][0]["message"]["content"]
+
+        if debug == "enable":
+            print("\n>>> AI4ARTSED PROMPT INTERCEPTION NODE <<<")
+            print("Model:", model)
+            print("Prompt sent:\n", prompt)
+            print("Response received:\n", output_text)
+
         return (output_text,)
 
-    def call_ollama(self, prompt, model, unload_model):
-        payload = {"model": model, "prompt": prompt, "system": "You are a fresh assistant instance. Forget all previous conversation history.", "stream": False}
+    def call_ollama(self, prompt, model, debug, unload_model):
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "system": "You are a fresh assistant instance. Forget all previous conversation history.",
+            "stream": False
+        }
 
         try:
             response = requests.post("http://localhost:11434/api/generate", json=payload)
@@ -174,5 +186,11 @@ class ai4artsed_prompt_interception:
                 requests.post("http://localhost:11434/api/generate", json=unload_payload, timeout=30)
             except:
                 pass
+
+        if debug == "enable":
+            print("\n>>> AI4ARTSED PROMPT INTERCEPTION NODE <<<")
+            print("Model:", model)
+            print("Prompt sent:\n", prompt)
+            print("Response received:\n", output)
 
         return (output,)
