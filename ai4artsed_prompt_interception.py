@@ -13,7 +13,8 @@ class ai4artsed_prompt_interception:
                 "style_prompt": ("STRING", {"default": "", "multiline": True}),
                 "api_key": ("STRING", {"multiline": False, "password": True}),
                 "model": (cls.get_combined_model_list(),),
-                "unload_model": (["no", "yes", "enable", "disable"], {"default": "no"}),
+                "debug": (["disable"], {"default": "disable"}),  # Dummy for legacy compatibility
+                "unload_model": (["no", "yes"], {"default": "no"}),
             }
         }
 
@@ -69,13 +70,7 @@ class ai4artsed_prompt_interception:
         except Exception as e:
             raise Exception(f"[Prompt Interception] Fehler beim Lesen der API-Zugangsdaten: {str(e)}")
 
-    def run(self, input_prompt, input_context, style_prompt, api_key, model, unload_model):
-        # Legacy-Kompatibilität zu alten Flows ("enable" → "yes", "disable" → "no")
-        if unload_model == "enable":
-            unload_model = "yes"
-        elif unload_model == "disable":
-            unload_model = "no"
-
+    def run(self, input_prompt, input_context, style_prompt, api_key, model, debug, unload_model):
         full_prompt = (
             f"Task:\n{style_prompt.strip()}\n\n"
             f"Context:\n{input_context.strip()}\nPrompt:\n{input_prompt.strip()}"
