@@ -20,7 +20,7 @@ class ai4artsed_random_language_selector:
             "Hausa", "Kannada", "Maithili", "Burmese", "Punjabi", 
             "Ukrainian", "Igbo", "Uzbek", "Azerbaijani",
             "Kurdish", "Somali",
-            "Malay", "Pashto", "Lao", "Kinyarwanda",
+            "Malay", "Lao", "Kinyarwanda",
             "Czech", "Greek", "Hungarian", "Kazakh",
             "Xhosa", "Yoruba", "Uighur", "Shona",
             "Thai", "Polish",
