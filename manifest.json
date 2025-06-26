@@ -15,7 +15,8 @@
     "ai4artsed_random_language_selector",
     "ai4artsed_openrouter_key",
     "ai4artsed_prompt_interception",
-    "ai4artsed_image_analysis"
+    "ai4artsed_image_analysis",
+    "ai4artsed_audio_ldm2"
   ],
   "extra_info": {
     "ai4artsed_openrouter_key": "Loads the OpenRouter API key from a local file 'openrouter.key'. No environment variables are used.",
