@@ -1,6 +1,5 @@
 import torch
 from diffusers import AudioLDMPipeline
-from comfy.model import register_node
 
 class ai4artsed_audio_ldm2:
     @classmethod
@@ -35,10 +34,3 @@ class ai4artsed_audio_ldm2:
         audio_tensor = result.audios[0]
         audio_array = audio_tensor.cpu().numpy()
         return (audio_array,)
-
-# Node bei ComfyUI registrieren
-def register():
-    register_node(ai4artsed_audio_ldm2)
-
-# Automatische Registrierung
-register()
