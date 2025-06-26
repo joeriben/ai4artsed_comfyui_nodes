@@ -1,8 +1,8 @@
 import torch
 from diffusers import AudioLDMPipeline
-from comfy.model import register_node, Node
+from comfy.model import register_node
 
-class ai4artsed_audioldm2(Node):
+class Ai4ArtsEdAudioLDM2:
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -19,7 +19,6 @@ class ai4artsed_audioldm2(Node):
     CATEGORY = "AI4ArtsEd"
 
     def __init__(self):
-        super().__init__()
         # Pipeline einmalig laden (float16 auf GPU)
         self.pipe = AudioLDMPipeline.from_pretrained(
             "cvssp/audioldm2-music", torch_dtype=torch.float16
@@ -33,15 +32,13 @@ class ai4artsed_audioldm2(Node):
             num_inference_steps=num_inference_steps,
             generator=generator
         )
-        # Ausgabe: Liste von Audios (Tensor [time_samples])
         audio_tensor = result.audios[0]
-        # In NumPy konvertieren und zurückgeben
         audio_array = audio_tensor.cpu().numpy()
         return (audio_array,)
 
 # Node bei ComfyUI registrieren
 def register():
-    register_node(ai4artsed_audioldm2)
+    register_node(Ai4ArtsEdAudioLDM2)
 
 # Automatische Registrierung
 register()
