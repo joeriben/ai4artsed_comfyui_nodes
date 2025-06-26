@@ -3,7 +3,7 @@ import json
 import requests
 import re
 
-class ai4artsed_prompt_interception:
+class ai4artsed_image_analysis:
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -145,7 +145,7 @@ class ai4artsed_prompt_interception:
         output_text = result["choices"][0]["message"]["content"]
 
         if debug == "enable":
-            print("\n>>> AI4ARTSED PROMPT INTERCEPTION NODE <<<")
+            print("\n>>> AI4ARTSED IMAGE ANALYSIS NODE <<<")
             print("Model:", model)
             print("Prompt sent:\n", prompt)
             print("Response received:\n", output_text)
@@ -175,7 +175,7 @@ class ai4artsed_prompt_interception:
                 pass
 
         if debug == "enable":
-            print("\n>>> AI4ARTSED PROMPT INTERCEPTION NODE <<<")
+            print("\n>>> AI4ARTSED IMAGE ANALYSIS NODE <<<")
             print("Model:", model)
             print("Prompt sent:\n", prompt)
             print("Response received:\n", output)
