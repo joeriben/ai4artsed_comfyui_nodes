@@ -17,7 +17,7 @@ NODE_CLASS_MAPPINGS = {
     "ai4artsed_t5_clip_fusion": ai4artsed_t5_clip_fusion,
     "ai4artsed_prompt_interception": ai4artsed_prompt_interception,
     "ai4artsed_image_analysis": ai4artsed_image_analysis,
-    "ai4artsed_audio_ldm2": ai4artsed_audioldm2,
+    "ai4artsed_audio_ldm2": ai4artsed_audio_ldm2,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
