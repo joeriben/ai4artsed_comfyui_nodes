@@ -2,7 +2,7 @@ import torch
 from diffusers import AudioLDMPipeline
 from comfy.model import register_node
 
-class Ai4ArtsEdAudioLDM2:
+class ai4artsed_audioldm2:
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -38,7 +38,7 @@ class Ai4ArtsEdAudioLDM2:
 
 # Node bei ComfyUI registrieren
 def register():
-    register_node(Ai4ArtsEdAudioLDM2)
+    register_node(ai4artsed_audioldm2)
 
 # Automatische Registrierung
 register()
