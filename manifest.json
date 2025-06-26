@@ -6,12 +6,7 @@
   "description": "ComfyUI nodes for the project AI for Arts Education",
   "license": "EUPL-1.2",
   "requirements": [
-    "torch",
-    "diffusers",
-    "transformers",
-    "torchaudio",
-    "librosa",
-    "soundfile"
+    "ollama"
   ],
   "nodes": [
     "ai4artsed_text_remix",
@@ -22,7 +17,6 @@
     "ai4artsed_t5_clip_fusion",
     "ai4artsed_prompt_interception",
     "ai4artsed_image_analysis",
-    "ai4artsed_audio_ldm2"
   ],
   "extra_info": {
     "ai4artsed_openrouter_key": "Loads the OpenRouter API key from a local file 'openrouter.key'. No environment variables are used."
