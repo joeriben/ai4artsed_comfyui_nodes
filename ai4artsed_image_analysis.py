@@ -28,40 +28,37 @@ class ai4artsed_image_analysis:
 
     @staticmethod
     def get_combined_model_list():
-        # OpenRouter models
-        openrouter_models = ["llava:7b", "llava:13b", "llava:34b"]
-        openrouter_models = [f"openrouter/{m}" for m in openrouter_models]
-        # Ollama local models
-        try:
-            response = requests.get("http://localhost:11434/api/tags")
-            response.raise_for_status()
-            ollama_models = [f"local/{m.get('name','')}" for m in response.json().get("models",[])]
-        except Exception:
-            ollama_models = []
-        return openrouter_models + ollama_models
+        # Define only the three LLaVA variants for imaging-capable models
+        llava_variants = ["llava:7b", "llava:13b", "llava:34b"]
+        # Ollama local prefixes for LLaVA models
+        ollama_models = [f"local/{name}" for name in llava_variants]
+        # OpenRouter prefixes for the same LLaVA variants
+        openrouter_models = [f"openrouter/{name}" for name in llava_variants]
+        return ollama_models + openrouter_models
 
     def run(self, image, prompt, model, system_prompt=None, api_key=""):
         # Convert image tensor to JPEG base64
         array = image[0].detach().cpu().numpy()
-        pil = Image.fromarray((array * 255).astype("uint8"))
+        pil_img = Image.fromarray((array * 255).astype("uint8"))
         buf = io.BytesIO()
-        pil.save(buf, format="JPEG")
+        pil_img.save(buf, format="JPEG")
         img_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
 
         # Prepare payload
         full_prompt = prompt.strip()
-        payload = {"model": model.split("/",1)[1],
-                   "prompt": full_prompt,
-                   "images": [img_b64],
-                   "stream": False}
+        payload = {
+            "model": model.split("/", 1)[1],
+            "prompt": full_prompt,
+            "images": [img_b64],
+            "stream": False
+        }
         if system_prompt:
             payload["system"] = system_prompt
 
-        # Call chosen backend
+        # Dispatch to OpenRouter or Ollama
         if model.startswith("openrouter/"):
             api_url, real_key = self.get_api_credentials(api_key)
             headers = {"Authorization": f"Bearer {real_key}", "Content-Type": "application/json"}
-            # OpenRouter uses messages format
             open_payload = {
                 "model": payload["model"],
                 "messages": [
@@ -82,7 +79,7 @@ class ai4artsed_image_analysis:
             try:
                 r = requests.post("http://localhost:11434/api/generate", json=payload)
                 r.raise_for_status()
-                output = r.json().get("response","")
+                output = r.json().get("response", "")
             except Exception as e:
                 output = f"[Error from Ollama] {e}"
         else:
@@ -90,17 +87,22 @@ class ai4artsed_image_analysis:
 
         # Parse return values
         text = output.strip()
-        # Extract float
-        num = re.search(r"[-+]?\d*\.\d+", text)
-        fval = float(num.group()) if num else 0.0
-        # Extract int
-        it = re.search(r"[-+]?\d+", text)
-        ival = int(it.group()) if it else 0
-        # Boolean
-        bval = any(x in text.lower() for x in ["true","yes"]) or (num and float(num.group())!=0)
+        num_match = re.search(r"[-+]?\d*\.\d+", text)
+        fval = float(num_match.group()) if num_match else 0.0
+        int_match = re.search(r"[-+]?\d+", text)
+        ival = int(int_match.group()) if int_match else 0
+        bval = any(x in text.lower() for x in ["true", "yes"]) or (num_match and float(num_match.group()) != 0)
 
         return text, fval, ival, bval
 
     def get_api_credentials(self, key):
+        # Return OpenRouter endpoint and API key
         if key.strip():
-            return "https://openrouter
+            return "https://openrouter.ai/api/v1/chat/completions", key.strip()
+        key_path = os.path.join(os.path.dirname(__file__), "openrouter.key")
+        try:
+            with open(key_path, "r") as f:
+                lines = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+                return lines[1], lines[0]
+        except:
+            return "https://openrouter.ai/api/v1/chat/completions", ""
