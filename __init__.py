@@ -6,7 +6,7 @@ from .ai4artsed_openrouter_key import ai4artsed_openrouter_key
 from .ai4artsed_t5_clip_fusion import ai4artsed_t5_clip_fusion
 from .ai4artsed_prompt_interception import ai4artsed_prompt_interception
 from .ai4artsed_image_analysis import ai4artsed_image_analysis
-from ai4artsed_audio_ldm2 import ai4artsed_audio_ldm2
+from .ai4artsed_audio_ldm2 import ai4artsed_audio_ldm2
 
 NODE_CLASS_MAPPINGS = {
     "ai4artsed_text_remix": ai4artsed_text_remix,
