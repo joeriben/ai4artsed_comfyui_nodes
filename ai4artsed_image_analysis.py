@@ -18,6 +18,8 @@ class ai4artsed_image_analysis:
             "optional": {
                 "system_prompt": ("STRING", {"multiline": True}),
                 "api_key": ("STRING", {"multiline": False, "password": True}),
+                "debug": (["enable", "disable"], {"default": "disable"}),
+                "unload_model": (["no", "yes"], {"default": "no"}),
             }
         }
 
@@ -28,15 +30,12 @@ class ai4artsed_image_analysis:
 
     @staticmethod
     def get_combined_model_list():
-        # Define only the three LLaVA variants for imaging-capable models
         llava_variants = ["llava:7b", "llava:13b", "llava:34b"]
-        # Ollama local prefixes for LLaVA models
         ollama_models = [f"local/{name}" for name in llava_variants]
-        # OpenRouter prefixes for the same LLaVA variants
         openrouter_models = [f"openrouter/{name}" for name in llava_variants]
         return ollama_models + openrouter_models
 
-    def run(self, image, prompt, model, system_prompt=None, api_key=""):
+    def run(self, image, prompt, model, system_prompt=None, api_key="", debug="disable", unload_model="no"):
         # Convert image tensor to JPEG base64
         array = image[0].detach().cpu().numpy()
         pil_img = Image.fromarray((array * 255).astype("uint8"))
@@ -44,7 +43,6 @@ class ai4artsed_image_analysis:
         pil_img.save(buf, format="JPEG")
         img_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
 
-        # Prepare payload
         full_prompt = prompt.strip()
         payload = {
             "model": model.split("/", 1)[1],
@@ -55,7 +53,8 @@ class ai4artsed_image_analysis:
         if system_prompt:
             payload["system"] = system_prompt
 
-        # Dispatch to OpenRouter or Ollama
+        # Dispatch to backends
+        output = ""
         if model.startswith("openrouter/"):
             api_url, real_key = self.get_api_credentials(api_key)
             headers = {"Authorization": f"Bearer {real_key}", "Content-Type": "application/json"}
@@ -73,7 +72,7 @@ class ai4artsed_image_analysis:
                 r.raise_for_status()
                 output = r.json()["choices"][0]["message"]["content"]
             except Exception as e:
-                output = f"[Error from OpenRouter] {e}"
+                output = f"[Error OpenRouter] {e}"
 
         elif model.startswith("local/"):
             try:
@@ -81,9 +80,23 @@ class ai4artsed_image_analysis:
                 r.raise_for_status()
                 output = r.json().get("response", "")
             except Exception as e:
-                output = f"[Error from Ollama] {e}"
+                output = f"[Error Ollama] {e}"
+            # Unload model if requested
+            if unload_model == "yes":
+                try:
+                    unload_payload = {"model": payload["model"], "prompt": "", "keep_alive": 0, "stream": False}
+                    requests.post("http://localhost:11434/api/generate", json=unload_payload, timeout=30)
+                except:
+                    pass
+
         else:
             output = f"[Error] Unknown model prefix: {model}"
+
+        if debug == "enable":
+            print("--- AI4ArtsEd Image Analysis Debug ---")
+            print("Model:", model)
+            print("Prompt:", full_prompt)
+            print("Output:", output)
 
         # Parse return values
         text = output.strip()
@@ -96,7 +109,6 @@ class ai4artsed_image_analysis:
         return text, fval, ival, bval
 
     def get_api_credentials(self, key):
-        # Return OpenRouter endpoint and API key
         if key.strip():
             return "https://openrouter.ai/api/v1/chat/completions", key.strip()
         key_path = os.path.join(os.path.dirname(__file__), "openrouter.key")
