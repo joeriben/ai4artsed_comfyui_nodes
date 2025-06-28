@@ -25,55 +25,58 @@ class ai4artsed_prompt_interception:
 
     @staticmethod
     def get_combined_model_list():
+        # Preis- und Kategorie-Mapping für OpenRouter-Modelle
+        model_info = {
+            "anthropic/claude-3.5-haiku":     {"price": "$0.80/$4.00", "tag": "multilingual"},
+            "anthropic/claude-3-haiku":       {"price": "$0.80/$4.00", "tag": "multilingual"},
+            "deepseek/deepseek-chat-v3-0324": {"price": "$0.27/$1.10", "tag": "rule-oriented"},
+            "deepseek/deepseek-r1-0528":      {"price": "$0.50/$2.15", "tag": "reasoning"},
+            "google/gemini-2.5-flash":        {"price": "$0.20/$2.50", "tag": "multilingual"},
+            "google/gemini-2.5-flash-lite-preview-06-17": {"price": "$0.10/$0.40", "tag": "multilingual"},
+            "google/gemini-2.5-flash-preview-05-20":      {"price": "$0.15/$0.60", "tag": "multilingual"},
+            "google/gemini-2.5-flash-preview-05-20:thinking": {"price": "$0.15/$3.50", "tag": "multilingual"},
+            "google/gemini-2.5-pro":         {"price": "$1.25/$10.00", "tag": "translator"},
+            "google/gemma-3-27b-it":         {"price": "$0.10/$0.18", "tag": "translator"},
+            "meta-llama/llama-3.3-70b-instruct": {"price": "$0.59/$0.79", "tag": "rule-oriented"},
+            "meta-llama/llama-guard-3-8b":      {"price": "$0.05/$0.10", "tag": "rule-oriented"},
+            "meta-llama/llama-3.2-1b-instruct": {"price": "$0.05/$0.10", "tag": "rule-oriented"},
+            "mistralai/mistral-medium-3":        {"price": "$0.40/$2.00", "tag": "rule-oriented"},
+            "mistralai/mistral-small-3.1-24b-instruct": {"price": "$0.10/$0.30", "tag": "rule-oriented"},
+            "mistralai/ministral-8b":            {"price": "$0.05/$0.10", "tag": "rule-oriented"},
+            "mistralai/ministral-3b":            {"price": "$0.05/$0.10", "tag": "rule-oriented"},
+            "mistralai/mixtral-8x7b-instruct":   {"price": "$0.45/$0.70", "tag": "cultural-expert"},
+            "nvidia/llama-3.3-nemotron-super-49b-v1": {"price": "$0.13/$0.40", "tag": "reasoning"},
+            "openai/gpt-4.1-nano": {"price": "$0.10/$0.40", "tag": "reasoning"},
+            "openai/o3":           {"price": "$2.00/$8.00", "tag": "rule-oriented"},
+            "openai/o3-mini":      {"price": "$1.10/$4.40", "tag": "rule-oriented"},
+            "qwen/qwen3-32b":      {"price": "$0.10/$0.30", "tag": "translator"},
+            "qwen/qwen3-235b-a22b": {"price": "$0.13/$0.60", "tag": "multilingual"}
+        }
+        # Erzeugung der Dropdown-Einträge mit Preis und Kategorie
         openrouter_models = [
-            "anthropic/claude-3-haiku",
-            "anthropic/claude-sonnet-4",
-            "deepseek/deepseek-chat-v3-0324",
-            "deepseek/deepseek-r1",
-            "google/gemini-2.5-pro-preview",
-            "meta-llama/llama-3.3-70b-instruct",
-            "meta-llama/llama-guard-3-8b",
-            "meta-llama/llama-3.2-1b-instruct",
-            "mistralai/mistral-medium-3",
-            "mistralai/mistral-small-3.1-24b-instruct",
-            "mistralai/ministral-8b",
-            "mistralai/ministral-3b",
-            "mistralai/mixtral-8x7b-instruct",
-            "openai/o3",
-            "qwen/qwen-2.5-72b-instruct",
-            "qwen/qwen-2.5-7b-instruct"
+            f"{model} [{info['tag']} / {info['price']}]"
+            for model, info in model_info.items()
         ]
-        openrouter_models = [f"openrouter/{m}" for m in openrouter_models]
+        openrouter_models = [f"openrouter/{entry}" for entry in openrouter_models]
 
+        # Ollama-Modelle lokal & kostenlos
         try:
             response = requests.get("http://localhost:11434/api/tags")
             response.raise_for_status()
-            ollama_models = [f"local/{m.get('name', '')}" for m in response.json().get("models", [])]
+            ollama_raw = [m.get('name', '') for m in response.json().get("models", [])]
         except Exception:
-            ollama_models = []
+            ollama_raw = []
+        ollama_models = [f"local/{name} [local / $0.00]" for name in ollama_raw]
 
         return openrouter_models + ollama_models
 
-    def get_api_credentials(self, user_input_key):
-        if user_input_key.strip():
-            return "https://openrouter.ai/api/v1/chat/completions", user_input_key.strip()
-
-        key_path = os.path.join(os.path.dirname(__file__), "openrouter.key")
-        try:
-            with open(key_path, "r") as f:
-                lines = [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
-                if len(lines) < 2:
-                    raise Exception("Key-Datei unvollständig: Erwartet mindestens zwei nicht-kommentierte Zeilen.")
-                api_key = lines[0]
-                api_url = lines[1]
-                return api_url, api_key
-        except Exception as e:
-            raise Exception(f"[Prompt Interception] Fehler beim Lesen der API-Zugangsdaten: {str(e)}")
-
     def run(self, input_prompt, input_context, style_prompt, api_key, model, debug, unload_model):
         full_prompt = (
-            f"Task:\n{style_prompt.strip()}\n\n"
-            f"Context:\n{input_context.strip()}\nPrompt:\n{input_prompt.strip()}"
+            f"Task:
+{style_prompt.strip()}\n\n"
+            f"Context:
+{input_context.strip()}\nPrompt:
+{input_prompt.strip()}"
         )
 
         if model.startswith("openrouter/"):
@@ -83,61 +86,29 @@ class ai4artsed_prompt_interception:
         else:
             raise Exception(f"Unbekannter Modell-Prefix in '{model}'. Erwartet 'openrouter/' oder 'local/'.")
 
-        # Formatierung: alle vier Rückgabeformate parallel mit Failsafes
+        # Formatierung der Ausgaben
         output_str = output_text.strip()
-
-        # Musterdefinitionen
         german_pattern = r"[-+]?\d{1,3}(?:\.\d{3})*,\d+"
         english_pattern = r"[-+]?\d*\.\d+"
         int_pattern = r"[-+]?\d+"
 
-        # Failsafe Float: deutsche Formate zuerst
+        # Failsafe Float
         m = re.search(german_pattern, output_str)
         if m:
-            num = m.group()
-            normalized = num.replace(".", "").replace(",", ".")
-            try:
-                output_float = float(normalized)
-            except:
-                output_float = 0.0
+            normalized = m.group().replace(".", "").replace(",", ".")
+            output_float = float(normalized) if normalized else 0.0
         else:
             m = re.search(english_pattern, output_str)
-            if m:
-                try:
-                    output_float = float(m.group())
-                except:
-                    output_float = 0.0
-            else:
-                m = re.search(int_pattern, output_str)
-                if m:
-                    try:
-                        output_float = float(m.group())
-                    except:
-                        output_float = 0.0
-                else:
-                    output_float = 0.0
+            output_float = float(m.group()) if m else 0.0
 
         # Failsafe Int
         m_int = re.search(int_pattern, output_str)
-        if m_int:
-            try:
-                output_int = int(round(float(m_int.group())))
-            except:
-                output_int = 0
-        else:
-            output_int = 0
+        output_int = int(round(float(m_int.group()))) if m_int else 0
 
         # Failsafe Binary
         lower = output_str.lower()
         num_match = re.search(english_pattern, output_str) or re.search(int_pattern, output_str)
-        if (
-            "true" in lower
-            or re.search(r"\b1\b", lower)
-            or (num_match and float(num_match.group()) != 0)
-        ):
-            output_binary = True
-        else:
-            output_binary = False
+        output_binary = bool("true" in lower or (num_match and float(num_match.group()) != 0))
 
         return output_str, output_float, output_int, output_binary
 
@@ -151,11 +122,8 @@ class ai4artsed_prompt_interception:
         payload = {"model": model, "messages": messages, "temperature": 0.7}
 
         response = requests.post(api_url, headers=headers, data=json.dumps(payload))
-        if response.status_code != 200:
-            raise Exception(f"[OpenRouter] API Error: {response.status_code}\n{response.text}")
-
-        result = response.json()
-        output_text = result["choices"][0]["message"]["content"]
+        response.raise_for_status()
+        output_text = response.json()["choices"][0]["message"]["content"]
 
         if debug == "enable":
             print("\n>>> AI4ARTSED PROMPT INTERCEPTION NODE <<<")
