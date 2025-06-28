@@ -52,12 +52,10 @@ class ai4artsed_prompt_interception:
             "qwen/qwen3-32b":      {"price": "$0.10/$0.30", "tag": "translator"},
             "qwen/qwen3-235b-a22b": {"price": "$0.13/$0.60", "tag": "multilingual"}
         }
-        # Erzeugung der Dropdown-Einträge mit Preis und Kategorie
         openrouter_models = [
-            f"{model} [{info['tag']} / {info['price']}]"
+            f"openrouter/{model} [{info['tag']} / {info['price']}]"
             for model, info in model_info.items()
         ]
-        openrouter_models = [f"openrouter/{entry}" for entry in openrouter_models]
 
         # Ollama-Modelle lokal & kostenlos
         try:
@@ -66,99 +64,82 @@ class ai4artsed_prompt_interception:
             ollama_raw = [m.get('name', '') for m in response.json().get("models", [])]
         except Exception:
             ollama_raw = []
-        ollama_models = [f"local/{name} [local / $0.00]" for name in ollama_raw]
+        ollama_models = [f"local/{name} [local-free / local]" for name in ollama_raw]
 
         return openrouter_models + ollama_models
 
+    def get_api_credentials(self, user_input_key):
+        # aus Umgebungsvariable oder Key-Datei
+        if user_input_key.strip():
+            return "https://openrouter.ai/api/v1/chat/completions", user_input_key.strip()
+        key_path = os.path.join(os.path.dirname(__file__), "openrouter.key")
+        with open(key_path, 'r') as f:
+            lines = [l.strip() for l in f if l.strip() and not l.strip().startswith('#')]
+        return lines[1] if len(lines) > 1 else "", lines[0] if lines else ""
+
     def run(self, input_prompt, input_context, style_prompt, api_key, model, debug, unload_model):
-        full_prompt = (
-            f"Task:
-{style_prompt.strip()}\n\n"
-            f"Context:
-{input_context.strip()}\nPrompt:
-{input_prompt.strip()}"
-        )
+        full_prompt = f"""
+Task:
+{style_prompt.strip()}
+
+Context:
+{input_context.strip()}
+
+Prompt:
+{input_prompt.strip()}
+"""
 
         if model.startswith("openrouter/"):
-            output_text = self.call_openrouter(full_prompt, model.split("/", 1)[1], api_key, debug)[0]
+            selected = model[len("openrouter/"):].split()[0]
+            output_text = self.call_openrouter(full_prompt, selected, api_key, debug)[0]
         elif model.startswith("local/"):
-            output_text = self.call_ollama(full_prompt, model.split("/", 1)[1], debug, unload_model)[0]
+            selected = model[len("local/"):].split()[0]
+            output_text = self.call_ollama(full_prompt, selected, debug, unload_model)[0]
         else:
-            raise Exception(f"Unbekannter Modell-Prefix in '{model}'. Erwartet 'openrouter/' oder 'local/'.")
+            raise Exception(f"Unbekannter Modell-Prefix: {model}")
 
-        # Formatierung der Ausgaben
-        output_str = output_text.strip()
-        german_pattern = r"[-+]?\d{1,3}(?:\.\d{3})*,\d+"
-        english_pattern = r"[-+]?\d*\.\d+"
-        int_pattern = r"[-+]?\d+"
+        return self._format_outputs(output_text)
 
-        # Failsafe Float
-        m = re.search(german_pattern, output_str)
-        if m:
-            normalized = m.group().replace(".", "").replace(",", ".")
-            output_float = float(normalized) if normalized else 0.0
-        else:
-            m = re.search(english_pattern, output_str)
-            output_float = float(m.group()) if m else 0.0
-
-        # Failsafe Int
-        m_int = re.search(int_pattern, output_str)
-        output_int = int(round(float(m_int.group()))) if m_int else 0
-
-        # Failsafe Binary
-        lower = output_str.lower()
-        num_match = re.search(english_pattern, output_str) or re.search(int_pattern, output_str)
-        output_binary = bool("true" in lower or (num_match and float(num_match.group()) != 0))
-
-        return output_str, output_float, output_int, output_binary
+    def _format_outputs(self, text):
+        output_str = text.strip()
+        german = re.search(r"[-+]?\d{1,3}(?:\.\d{3})*,\d+", output_str)
+        eng = re.search(r"[-+]?\d*\.\d+", output_str)
+        output_float = 0.0
+        if german:
+            norm = german.group().replace('.', '').replace(',', '.')
+            output_float = float(norm)
+        elif eng:
+            output_float = float(eng.group())
+        output_int = int(round(output_float))
+        binary = bool("true" in output_str.lower() or output_float != 0)
+        return output_str, output_float, output_int, binary
 
     def call_openrouter(self, prompt, model, api_key, debug):
-        api_url, real_api_key = self.get_api_credentials(api_key)
-        headers = {"Authorization": f"Bearer {real_api_key}", "Content-Type": "application/json"}
-        messages = [
-            {"role": "system", "content": "You are a fresh assistant instance. Forget all previous conversation history."},
+        api_url, real_key = self.get_api_credentials(api_key)
+        headers = {"Authorization": f"Bearer {real_key}", "Content-Type": "application/json"}
+        payload = {"model": model, "messages": [
+            {"role": "system", "content": "You are a fresh assistant instance."},
             {"role": "user", "content": prompt}
-        ]
-        payload = {"model": model, "messages": messages, "temperature": 0.7}
-
-        response = requests.post(api_url, headers=headers, data=json.dumps(payload))
-        response.raise_for_status()
-        output_text = response.json()["choices"][0]["message"]["content"]
-
-        if debug == "enable":
-            print("\n>>> AI4ARTSED PROMPT INTERCEPTION NODE <<<")
-            print("Model:", model)
-            print("Prompt sent:\n", prompt)
-            print("Response received:\n", output_text)
-
-        return (output_text,)
+        ], "temperature": 0.7}
+        resp = requests.post(api_url, headers=headers, json=payload)
+        resp.raise_for_status()
+        content = resp.json()["choices"][0]["message"]["content"]
+        if debug == "enable": print("[OR] Prompt->", prompt, "\nResp->", content)
+        return (content,)
 
     def call_ollama(self, prompt, model, debug, unload_model):
-        payload = {
-            "model": model,
-            "prompt": prompt,
-            "system": "You are a fresh assistant instance. Forget all previous conversation history.",
-            "stream": False
-        }
-
+        payload = {"model": model, "prompt": prompt, "stream": False}
         try:
-            response = requests.post("http://localhost:11434/api/generate", json=payload)
-            response.raise_for_status()
-            output = response.json().get("response", "")
+            resp = requests.post("http://localhost:11434/api/generate", json=payload)
+            resp.raise_for_status()
+            out = resp.json().get("response", "")
         except Exception as e:
-            output = f"[Error from Ollama] {str(e)}"
-
+            out = f"[Error Ollama] {e}"
         if unload_model == "yes":
             try:
-                unload_payload = {"model": model, "prompt": "", "keep_alive": 0, "stream": False}
-                requests.post("http://localhost:11434/api/generate", json=unload_payload, timeout=30)
+                requests.post("http://localhost:11434/api/generate", json={"model": model, "prompt": "", "keep_alive": 0, "stream": False}, timeout=10)
             except:
                 pass
+        if debug == "enable": print("[OL] Prompt->", prompt, "\nResp->", out)
+        return (out,)
 
-        if debug == "enable":
-            print("\n>>> AI4ARTSED PROMPT INTERCEPTION NODE <<<")
-            print("Model:", model)
-            print("Prompt sent:\n", prompt)
-            print("Response received:\n", output)
-
-        return (output,)
