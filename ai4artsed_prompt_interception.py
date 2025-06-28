@@ -64,7 +64,7 @@ class ai4artsed_prompt_interception:
             ollama_raw = [m.get('name', '') for m in response.json().get("models", [])]
         except Exception:
             ollama_raw = []
-        ollama_models = [f"local/{name} [local-free / local]" for name in ollama_raw]
+        ollama_models = [f"local/{name} [local / $0.00]" for name in ollama_raw]
 
         return openrouter_models + ollama_models
 
