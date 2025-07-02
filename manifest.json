@@ -15,6 +15,7 @@
     "ai4artsed_random_language_selector",
     "ai4artsed_openrouter_key",
     "ai4artsed_t5_clip_fusion",
+    "ai4artsed_conditioning_fusion",
     "ai4artsed_prompt_interception",
     "ai4artsed_image_analysis",
   ],
