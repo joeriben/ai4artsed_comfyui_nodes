@@ -37,7 +37,7 @@ Important:
 
 NODE_NAME = "AI4ArtsEd Conditioning Fusion"
 
-class AI4ArtsEdConditioningFusion:
+class ai4artsed_conditioning_fusion:
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -130,10 +130,10 @@ class AI4ArtsEdConditioningFusion:
 
 # ---- ComfyUI registration ---------------------------------------------------
 
-NODE_CLASSES = {
-    "AI4ArtsEdConditioningFusion": AI4ArtsEdConditioningFusion,
+NODE_CLASS_MAPPINGS = {
+    "ai4artsed_conditioning_fusion": ai4artsed_conditioning_fusion,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "AI4ArtsEdConditioningFusion": NODE_NAME,
+    "ai4artsed_conditioning_fusion": NODE_NAME,
 }
