@@ -8,6 +8,7 @@ from .ai4artsed_conditioning_fusion import ai4artsed_conditioning_fusion
 from .ai4artsed_prompt_interception import ai4artsed_prompt_interception
 from .ai4artsed_image_analysis import ai4artsed_image_analysis
 from .ai4artsed_vector_dimension_eliminator import ai4artsed_vector_dimension_eliminator
+from .ai4artsed_switch_promptsafety import ai4artsed_switch_promptsafety
 
 NODE_CLASS_MAPPINGS = {
     "ai4artsed_text_remix": ai4artsed_text_remix,
@@ -20,6 +21,7 @@ NODE_CLASS_MAPPINGS = {
     "ai4artsed_prompt_interception": ai4artsed_prompt_interception,
     "ai4artsed_image_analysis": ai4artsed_image_analysis,
     "ai4artsed_vector_dimension_eliminator": ai4artsed_vector_dimension_eliminator,
+    "ai4artsed_switch_promptsafety": ai4artsed_switch_promptsafety,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -33,4 +35,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ai4artsed_prompt_interception": "AI4ArtsEd Prompt Interception",
     "ai4artsed_image_analysis": "AI4ArtsEd Image Analysis",
     "ai4artsed_vector_dimension_eliminator": "AI4ArtsEd Vector Dimension Eliminator",
+    "ai4artsed_switch_promptsafety": "AI4ArtsEd Promptsafety Switch",
 }
