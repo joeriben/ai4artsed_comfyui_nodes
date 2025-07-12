@@ -1,12 +1,13 @@
 {
   "name": "ai4artsed-nodes",
   "display_name": "AI4ArtsEd Nodes",
-  "version": "0.6",
+  "version": "0.7",
   "author": "Prof. Dr. Benjamin Jörissen",
-  "description": "ComfyUI nodes for the project AI for Arts Education",
+  "description": "ComfyUI nodes for the project AI for Arts Education. Now includes a prompt safety switch.",
   "license": "EUPL-1.2",
   "requirements": [
-    "ollama"
+    "ollama",
+    "requests"
   ],
   "nodes": [
     "ai4artsed_text_remix",
@@ -18,8 +19,11 @@
     "ai4artsed_conditioning_fusion",
     "ai4artsed_prompt_interception",
     "ai4artsed_image_analysis",
+    "ai4artsed_vector_dimension_eliminator",
+    "ai4artsed_switch_promptsafety"
   ],
   "extra_info": {
-    "ai4artsed_openrouter_key": "Loads the OpenRouter API key from a local file 'openrouter.key'. No environment variables are used."
+    "ai4artsed_openrouter_key": "Loads the OpenRouter API key from a local file 'openrouter.key'. No environment variables are used.",
+    "ai4artsed_switch_promptsafety": "A node to filter prompts based on safety levels (kids/youth) using a configurable LLM."
   }
 }
