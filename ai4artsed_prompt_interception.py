@@ -27,14 +27,8 @@ class ai4artsed_prompt_interception:
     def get_combined_model_list():
         # Preis- und Kategorie-Mapping für OpenRouter-Modelle
         model_info = {
-            "anthropic/claude-3.5-haiku": {"price": "$0.80/$4.00", "tag": "multilingual"},
-            "anthropic/claude-3-haiku": {"price": "$0.80/$4.00", "tag": "multilingual"},
-            "deepseek/deepseek-chat-v3-0324": {"price": "$0.27/$1.10", "tag": "rule-oriented"},
-            "deepseek/deepseek-r1-0528": {"price": "$0.50/$2.15", "tag": "reasoning"},
-            "google/gemini-2.5-flash": {"price": "$0.20/$2.50", "tag": "multilingual"},
-            "google/gemini-2.5-flash-lite-preview-06-17": {"price": "$0.10/$0.40", "tag": "multilingual"},
-            "google/gemini-2.5-flash-preview-05-20": {"price": "$0.15/$0.60", "tag": "multilingual"},
-            "google/gemini-2.5-flash-preview-05-20:thinking": {"price": "$0.15/$3.50", "tag": "multilingual"},
+            "anthropic/claude-haiku-4.5": {"price": "$0.80/$4.00", "tag": "multilingual"},
+            "deepseek/deepseek-v3.2": {"price": "$0.27/$1.10", "tag": "rule-oriented"},
             "google/gemini-2.5-pro": {"price": "$1.25/$10.00", "tag": "translator"},
             "google/gemma-3-27b-it": {"price": "$0.10/$0.18", "tag": "translator"},
             "meta-llama/llama-3.3-70b-instruct": {"price": "$0.59/$0.79", "tag": "rule-oriented"},
@@ -43,13 +37,8 @@ class ai4artsed_prompt_interception:
             "mistralai/mistral-medium-3": {"price": "$0.40/$2.00", "tag": "reasoning"},
             "mistralai/mistral-small-3.1-24b-instruct": {"price": "$0.10/$0.30", "tag": "rule-oriented, vision"},
             "mistralai/mistral-nemo": {"price": "$0.01/$0.001", "tag": "multilingual"},
-            "mistralai/ministral-8b": {"price": "$0.05/$0.10", "tag": "rule-oriented"},
-            "mistralai/ministral-3b": {"price": "$0.05/$0.10", "tag": "rule-oriented"},
             "mistralai/mixtral-8x7b-instruct": {"price": "$0.45/$0.70", "tag": "cultural-expert"},
             "nvidia/llama-3.3-nemotron-super-49b-v1": {"price": "$0.13/$0.40", "tag": "reasoning"},
-            "openai/gpt-4.1-nano": {"price": "$0.10/$0.40", "tag": "reasoning"},
-            "openai/o3": {"price": "$2.00/$8.00", "tag": "rule-oriented"},
-            "openai/o3-mini": {"price": "$1.10/$4.40", "tag": "rule-oriented"},
             "qwen/qwen3-32b": {"price": "$0.10/$0.30", "tag": "translator"},
             "qwen/qwen3-235b-a22b": {"price": "$0.13/$0.60", "tag": "multilingual"}
         }
