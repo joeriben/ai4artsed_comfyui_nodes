@@ -3,29 +3,40 @@ import json
 import requests
 import re
 
-class ai4artsed_prompt_interception:
+class ai4artsed_photo_prompt_randomizer:
+
+    SYSTEM_PROMPT = """You are an inventive creative. Your task is to invent a REALISTIC photographic image prompt. Choose either unlikely, untypical or typical photographical sujets for realistic photographic images. Be verbose, provide intricate details.
+Always begin your output with: "An Kodachrome film slide of".
+Transform the prompt strictly following the context.
+NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INSTRUCTION."""
+
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input_prompt": ("STRING", {"multiline": True}),
-                "input_context": ("STRING", {"default": "", "multiline": True}),
-                "style_prompt": ("STRING", {"default": "", "multiline": True}),
-                "api_key": ("STRING", {"multiline": False, "password": True}),
+                "random_seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
                 "model": (cls.get_combined_model_list(),),
-                "debug": (["enable", "disable"], {"default": "disable"}),
+                "debug": (["disable", "enable"], {"default": "disable"}),
                 "unload_model": (["no", "yes"], {"default": "no"}),
+            },
+            "optional": {
+                "api_key": ("STRING", {"multiline": False, "password": True, "default": ""}),
+                "context": ("STRING", {"multiline": True, "default": ""}),
             }
         }
 
-    RETURN_TYPES = ("STRING", "FLOAT", "INT", "BOOLEAN")
-    RETURN_NAMES = ("output_str", "output_float", "output_int", "output_binary")
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("prompt",)
     FUNCTION = "run"
     CATEGORY = "AI4ArtsEd"
 
+    # Force re-execution every time
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return float("nan")
+
     @staticmethod
     def get_combined_model_list():
-        # Preis- und Kategorie-Mapping für OpenRouter-Modelle
         model_info = {
             "anthropic/claude-3.5-haiku": {"price": "$0.80/$4.00", "tag": "multilingual"},
             "anthropic/claude-3-haiku": {"price": "$0.80/$4.00", "tag": "multilingual"},
@@ -58,13 +69,12 @@ class ai4artsed_prompt_interception:
             "qwen/qwen3-32b": {"price": "$0.10/$0.30", "tag": "translator"},
             "qwen/qwen3-235b-a22b": {"price": "$0.13/$0.60", "tag": "multilingual"}
         }
-        
+
         openrouter_models = [
             f"openrouter/{model} [{info['tag']} / {info['price']}]"
             for model, info in model_info.items()
         ]
 
-        # Ollama-Modelle lokal & kostenlos
         try:
             response = requests.get("http://localhost:11434/api/tags", timeout=5)
             response.raise_for_status()
@@ -92,18 +102,15 @@ class ai4artsed_prompt_interception:
         """Sucht ähnliches OpenRouter-Modell nur bei Fehlern"""
         if debug == "enable":
             print(f"[FALLBACK] Suche Ersatz für: {failed_model}")
-        
-        # Extrahiere Basis-Info vom fehlgeschlagenen Modell
+
         model_parts = failed_model.split("/")
         if len(model_parts) >= 2:
-            provider = model_parts[0]  # z.B. "anthropic", "meta-llama"
-            model_name = model_parts[1]  # z.B. "claude-3-haiku", "llama-3.3-70b"
-            
-            # Extrahiere Größe (falls vorhanden)
+            provider = model_parts[0]
+            model_name = model_parts[1]
+
             size_match = re.search(r'(\d+)b', model_name.lower())
             target_size = int(size_match.group(1)) if size_match else None
-            
-            # Unsere bekannte Modell-Liste
+
             known_models = {
                 "anthropic/claude-3.5-haiku": {"size": None, "provider": "anthropic"},
                 "anthropic/claude-3-haiku": {"size": None, "provider": "anthropic"},
@@ -119,53 +126,47 @@ class ai4artsed_prompt_interception:
                 "mistralai/mistral-small-3.1-24b-instruct": {"size": 24, "provider": "mistralai"},
                 "mistralai/ministral-8b": {"size": 8, "provider": "mistralai"},
                 "mistralai/ministral-3b": {"size": 3, "provider": "mistralai"},
-                "mistralai/mixtral-8x7b-instruct": {"size": 56, "provider": "mistralai"},  # 8x7b = ~56b
+                "mistralai/mixtral-8x7b-instruct": {"size": 56, "provider": "mistralai"},
                 "qwen/qwen3-32b": {"size": 32, "provider": "qwen"},
                 "qwen/qwen3-235b-a22b": {"size": 235, "provider": "qwen"},
                 "openai/gpt-oss-120b": {"size": 120, "provider": "openai"},
                 "openai/gpt-oss-20b": {"size": 20, "provider": "openai"},
             }
-            
+
             fallback_candidates = []
-            
-            # 1. Priorität: Gleicher Provider
+
             for model, info in known_models.items():
                 if info["provider"] == provider:
                     fallback_candidates.append((model, 100))
-            
-            # 2. Priorität: Ähnliche Größe (falls Größe erkannt)
+
             if target_size:
                 for model, info in known_models.items():
                     if info["size"] and abs(info["size"] - target_size) <= 10:
                         fallback_candidates.append((model, 80))
-            
-            # 3. Priorität: Allgemeine Fallbacks
+
             general_fallbacks = [
                 "anthropic/claude-3.5-haiku",
                 "meta-llama/llama-3.2-1b-instruct",
                 "mistralai/ministral-8b"
             ]
-            
+
             for model in general_fallbacks:
                 fallback_candidates.append((model, 50))
-            
-            # Sortiere nach Priorität und teste
+
             fallback_candidates.sort(key=lambda x: x[1], reverse=True)
-            
+
             for candidate_model, priority in fallback_candidates:
                 try:
                     if debug == "enable":
                         print(f"[FALLBACK] Teste: {candidate_model} (Priorität: {priority})")
-                    
-                    # Teste das Fallback-Modell mit einem Mini-Prompt
+
                     if self.test_openrouter_model(candidate_model, api_key):
                         if debug == "enable":
                             print(f"[FALLBACK] Erfolgreich: {candidate_model}")
                         return candidate_model
                 except:
                     continue
-        
-        # Letzter Fallback: Einfachstes Modell
+
         return "anthropic/claude-3-haiku"
 
     def test_openrouter_model(self, model, api_key):
@@ -187,8 +188,7 @@ class ai4artsed_prompt_interception:
         """Sucht ähnliches Ollama-Modell nur bei Fehlern"""
         if debug == "enable":
             print(f"[FALLBACK] Suche Ollama-Ersatz für: {failed_model}")
-        
-        # Hole verfügbare Modelle
+
         try:
             response = requests.get("http://localhost:11434/api/tags", timeout=5)
             available_models = [m.get('name', '') for m in response.json().get("models", [])]
@@ -196,29 +196,25 @@ class ai4artsed_prompt_interception:
             if debug == "enable":
                 print("[FALLBACK] Ollama nicht erreichbar")
             return None
-        
+
         if not available_models:
             return None
-        
-        # Extrahiere Größe und Typ vom fehlgeschlagenen Modell
+
         failed_lower = failed_model.lower()
         size_match = re.search(r'(\d+)b', failed_lower)
         target_size = int(size_match.group(1)) if size_match else None
-        
-        # Kategorisiere verfügbare Modelle
+
         candidates = []
-        
+
         for available in available_models:
             available_lower = available.lower()
             score = 0
-            
-            # 1. Gleicher Basis-Name (llama, mistral, etc.)
+
             for base_name in ['llama', 'mistral', 'qwen', 'gemma', 'phi', 'codellama']:
                 if base_name in failed_lower and base_name in available_lower:
                     score += 100
                     break
-            
-            # 2. Ähnliche Größe
+
             if target_size:
                 avail_size_match = re.search(r'(\d+)b', available_lower)
                 if avail_size_match:
@@ -230,29 +226,26 @@ class ai4artsed_prompt_interception:
                         score += 60
                     elif size_diff <= 15:
                         score += 40
-            
-            # 3. Allgemeine Präferenzen
+
             if 'instruct' in available_lower:
                 score += 20
             if any(x in available_lower for x in ['3.2', '3.1', '2.5']):
                 score += 10
-            
+
             candidates.append((available, score))
-        
-        # Sortiere und wähle bestes verfügbares Modell
+
         candidates.sort(key=lambda x: x[1], reverse=True)
-        
+
         if candidates and candidates[0][1] > 0:
             best_model = candidates[0][0]
             if debug == "enable":
                 print(f"[FALLBACK] Gewählt: {best_model} (Score: {candidates[0][1]})")
             return best_model
-        
-        # Letzter Fallback: Erstes verfügbares Modell
+
         return available_models[0] if available_models else None
 
     def get_api_credentials(self, user_input_key):
-        if user_input_key.strip():
+        if user_input_key and user_input_key.strip():
             return "https://openrouter.ai/api/v1/chat/completions", user_input_key.strip()
 
         key_path = os.path.join(os.path.dirname(__file__), "openrouter.key")
@@ -265,123 +258,66 @@ class ai4artsed_prompt_interception:
                 api_url = lines[1]
                 return api_url, api_key
         except Exception as e:
-            raise Exception(f"[Prompt Interception] Fehler beim Lesen der API-Zugangsdaten: {str(e)}")
+            raise Exception(f"[Photo Prompt Randomizer] Fehler beim Lesen der API-Zugangsdaten: {str(e)}")
 
-    def run(self, input_prompt, input_context, style_prompt, api_key, model, debug, unload_model):
-        full_prompt = (
-            f"Task:\n{style_prompt.strip()}\n\n"
-            f"Context:\n{input_context.strip()}\nPrompt:\n{input_prompt.strip()}"
-        )
+    def run(self, random_seed, model, debug, unload_model, api_key="", context=""):
+        # random_seed wird ignoriert - dient nur zum Cache-Breaking
 
-        # Echten Modellnamen extrahieren
+        # Prompt-Erstellung
+        if context and context.strip():
+            user_prompt = f"Context to incorporate: {context.strip()}\n\nGenerate a photographic image prompt based on this context."
+        else:
+            user_prompt = "Generate a creative photographic image prompt."
+
         real_model_name = self.extract_model_name(model)
 
         if model.startswith("openrouter/"):
-            output_text = self.call_openrouter(full_prompt, real_model_name, api_key, debug)[0]
+            output_text = self.call_openrouter(user_prompt, real_model_name, api_key, debug)[0]
         elif model.startswith("local/"):
-            output_text = self.call_ollama(full_prompt, real_model_name, debug, unload_model)[0]
+            output_text = self.call_ollama(user_prompt, real_model_name, debug, unload_model)[0]
         else:
             raise Exception(f"Unbekannter Modell-Prefix in '{model}'. Erwartet 'openrouter/' oder 'local/'.")
 
-        # Formatierung: alle vier Rückgabeformate parallel mit Failsafes
-        output_str = output_text.strip()
-
-        # Musterdefinitionen
-        german_pattern = r"[-+]?\d{1,3}(?:\.\d{3})*,\d+"
-        english_pattern = r"[-+]?\d*\.\d+"
-        int_pattern = r"[-+]?\d+"
-
-        # Failsafe Float: deutsche Formate zuerst
-        m = re.search(german_pattern, output_str)
-        if m:
-            num = m.group()
-            normalized = num.replace(".", "").replace(",", ".")
-            try:
-                output_float = float(normalized)
-            except:
-                output_float = 0.0
-        else:
-            m = re.search(english_pattern, output_str)
-            if m:
-                try:
-                    output_float = float(m.group())
-                except:
-                    output_float = 0.0
-            else:
-                m = re.search(int_pattern, output_str)
-                if m:
-                    try:
-                        output_float = float(m.group())
-                    except:
-                        output_float = 0.0
-                else:
-                    output_float = 0.0
-
-        # Failsafe Int
-        m_int = re.search(int_pattern, output_str)
-        if m_int:
-            try:
-                output_int = int(round(float(m_int.group())))
-            except:
-                output_int = 0
-        else:
-            output_int = 0
-
-        # Failsafe Binary
-        lower = output_str.lower()
-        num_match = re.search(english_pattern, output_str) or re.search(int_pattern, output_str)
-        if (
-            "true" in lower
-            or re.search(r"\b1\b", lower)
-            or (num_match and float(num_match.group()) != 0)
-        ):
-            output_binary = True
-        else:
-            output_binary = False
-
-        return output_str, output_float, output_int, output_binary
+        return (output_text.strip(),)
 
     def call_openrouter(self, prompt, model, api_key, debug):
         try:
-            # Normaler Aufruf
             api_url, real_api_key = self.get_api_credentials(api_key)
             headers = {"Authorization": f"Bearer {real_api_key}", "Content-Type": "application/json"}
             messages = [
-                {"role": "system", "content": "You are a fresh assistant instance. Forget all previous conversation history."},
+                {"role": "system", "content": self.SYSTEM_PROMPT},
                 {"role": "user", "content": prompt}
             ]
-            payload = {"model": model, "messages": messages, "temperature": 0.7}
+            payload = {"model": model, "messages": messages, "temperature": 0.9}
 
             response = requests.post(api_url, headers=headers, data=json.dumps(payload))
             if response.status_code == 200:
                 result = response.json()
                 output_text = result["choices"][0]["message"]["content"]
-                
+
                 if debug == "enable":
                     print("\n" + "="*60)
-                    print(">>> AI4ARTSED PROMPT INTERCEPTION NODE <<<")
+                    print(">>> AI4ARTSED PHOTO PROMPT RANDOMIZER <<<")
                     print("="*60)
-                    print(f"Selected: openrouter/{model}")
-                    print(f"Real Model: {model}")
+                    print(f"Model: openrouter/{model}")
                     print("-" * 40)
-                    print("Prompt sent:")
+                    print("User prompt:")
                     print(prompt)
                     print("-" * 40)
-                    print("Response received:")
+                    print("Generated prompt:")
                     print(output_text)
                     print("="*60)
-                
+
                 return (output_text,)
             else:
                 raise Exception(f"API Error: {response.status_code}\n{response.text}")
-                
+
         except Exception as e:
             if debug == "enable":
                 print(f"[ERROR] Modell {model} fehlgeschlagen: {e}")
-            
-            # NUR JETZT Fallback aktivieren
+
             fallback_model = self.find_openrouter_fallback(model, api_key, debug)
-            if fallback_model != model:  # Verhindere Endlosschleife
+            if fallback_model != model:
                 if debug == "enable":
                     print(f"[FALLBACK] Versuche {fallback_model}")
                 return self.call_openrouter(prompt, fallback_model, api_key, debug)
@@ -390,19 +326,18 @@ class ai4artsed_prompt_interception:
 
     def call_ollama(self, prompt, model, debug, unload_model):
         try:
-            # Normaler Aufruf
             payload = {
                 "model": model,
                 "prompt": prompt,
-                "system": "You are a fresh assistant instance. Forget all previous conversation history.",
+                "system": self.SYSTEM_PROMPT,
                 "stream": False
             }
 
             response = requests.post("http://localhost:11434/api/generate", json=payload)
-            
+
             if response.status_code == 200:
                 output = response.json().get("response", "")
-                if output:  # Erfolg
+                if output:
                     if unload_model == "yes":
                         try:
                             unload_payload = {"model": model, "prompt": "", "keep_alive": 0, "stream": False}
@@ -412,27 +347,25 @@ class ai4artsed_prompt_interception:
 
                     if debug == "enable":
                         print("\n" + "="*60)
-                        print(">>> AI4ARTSED PROMPT INTERCEPTION NODE <<<")
+                        print(">>> AI4ARTSED PHOTO PROMPT RANDOMIZER <<<")
                         print("="*60)
-                        print(f"Selected: local/{model} [local / $0.00]")
-                        print(f"Real Model: {model}")
+                        print(f"Model: local/{model}")
                         print("-" * 40)
-                        print("Prompt sent:")
+                        print("User prompt:")
                         print(prompt)
                         print("-" * 40)
-                        print("Response received:")
+                        print("Generated prompt:")
                         print(output)
                         print("="*60)
 
                     return (output,)
-            
+
             raise Exception(f"Ollama Error: {response.status_code}")
-            
+
         except Exception as e:
             if debug == "enable":
                 print(f"[ERROR] Ollama-Modell {model} fehlgeschlagen: {e}")
-            
-            # NUR JETZT Fallback aktivieren
+
             fallback_model = self.find_ollama_fallback(model, debug)
             if fallback_model and fallback_model != model:
                 if debug == "enable":

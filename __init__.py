@@ -9,6 +9,7 @@ from .ai4artsed_prompt_interception import ai4artsed_prompt_interception
 from .ai4artsed_image_analysis import ai4artsed_image_analysis
 from .ai4artsed_vector_dimension_eliminator import ai4artsed_vector_dimension_eliminator
 from .ai4artsed_switch_promptsafety import ai4artsed_switch_promptsafety
+from .ai4artsed_photo_prompt_randomizer import ai4artsed_photo_prompt_randomizer
 
 NODE_CLASS_MAPPINGS = {
     "ai4artsed_text_remix": ai4artsed_text_remix,
@@ -22,6 +23,7 @@ NODE_CLASS_MAPPINGS = {
     "ai4artsed_image_analysis": ai4artsed_image_analysis,
     "ai4artsed_vector_dimension_eliminator": ai4artsed_vector_dimension_eliminator,
     "ai4artsed_switch_promptsafety": ai4artsed_switch_promptsafety,
+    "ai4artsed_photo_prompt_randomizer": ai4artsed_photo_prompt_randomizer,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -36,4 +38,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ai4artsed_image_analysis": "AI4ArtsEd Image Analysis",
     "ai4artsed_vector_dimension_eliminator": "AI4ArtsEd Vector Dimension Eliminator",
     "ai4artsed_switch_promptsafety": "AI4ArtsEd Promptsafety Switch",
+    "ai4artsed_photo_prompt_randomizer": "Photo Prompt Randomizer",
 }
