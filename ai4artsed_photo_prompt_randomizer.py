@@ -2,12 +2,38 @@ import os
 import json
 import requests
 import re
+import random
 
 class ai4artsed_photo_prompt_randomizer:
 
-    SYSTEM_PROMPT = """You are an inventive creative. Your task is to invent a REALISTIC photographic image prompt. Choose either unlikely, untypical or typical photographical sujets for realistic photographic images. Be verbose, provide intricate details.
-Always begin your output with: "An Kodachrome film slide of".
-Transform the prompt strictly following the context.
+    FILM_TYPES = {
+        "random": None,  # Will be randomly selected at runtime
+        "Kodachrome": "a Kodachrome film slide",
+        "Ektachrome": "an Ektachrome film slide",
+        "Portra 400": "a Kodak Portra 400 color negative",
+        "Portra 800": "a Kodak Portra 800 color negative",
+        "Ektar 100": "a Kodak Ektar 100 color negative",
+        "Fuji Pro 400H": "a Fujifilm Pro 400H color negative",
+        "Fuji Superia": "a Fujifilm Superia color negative",
+        "CineStill 800T": "a CineStill 800T tungsten-balanced color negative",
+        "Ilford HP5": "an Ilford HP5 Plus black and white negative",
+        "Ilford Delta 400": "an Ilford Delta 400 black and white negative",
+        "Ilford FP4": "an Ilford FP4 Plus black and white negative",
+        "Ilford Pan F": "an Ilford Pan F Plus 50 black and white negative",
+        "Ilford XP2": "an Ilford XP2 Super chromogenic black and white negative",
+        "Tri-X 400": "a Kodak Tri-X 400 black and white negative",
+    }
+
+    DEFAULT_SYSTEM_PROMPT = """You are an inventive creative. Your task is to invent a REALISTIC photographic image prompt.
+
+Think globally. Avoid cultural clichés. Avoid "retro" style descriptions.
+Describe contemporary everyday motives: scenes, objects, animals, nature, tech, culture, people, homes, family, work, holiday, urban, rural, trivia, details.
+
+Choose either unlikely, untypical or typical photographical sujets for realistic photographic images. Be verbose, provide intricate details.
+
+Always begin your output with: "{film_description} of".
+Transform the prompt strictly following the context if provided.
+
 NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INSTRUCTION."""
 
     @classmethod
@@ -15,6 +41,8 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
         return {
             "required": {
                 "random_seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "film_type": (list(cls.FILM_TYPES.keys()),),
+                "system_prompt": ("STRING", {"multiline": True, "default": cls.DEFAULT_SYSTEM_PROMPT}),
                 "model": (cls.get_combined_model_list(),),
                 "debug": (["disable", "enable"], {"default": "disable"}),
                 "unload_model": (["no", "yes"], {"default": "no"}),
@@ -260,8 +288,24 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
         except Exception as e:
             raise Exception(f"[Photo Prompt Randomizer] Fehler beim Lesen der API-Zugangsdaten: {str(e)}")
 
-    def run(self, random_seed, model, debug, unload_model, api_key="", context=""):
+    def get_system_prompt(self, film_type, system_prompt_template):
+        """Build system prompt with selected film type"""
+        if film_type == "random":
+            # Select random film type (excluding "random" itself)
+            actual_films = [k for k in self.FILM_TYPES.keys() if k != "random"]
+            film_type = random.choice(actual_films)
+
+        film_description = self.FILM_TYPES[film_type]
+        return system_prompt_template.format(film_description=film_description), film_type
+
+    def run(self, random_seed, film_type, system_prompt, model, debug, unload_model, api_key="", context=""):
         # random_seed wird ignoriert - dient nur zum Cache-Breaking
+
+        # Build system prompt with film type
+        final_system_prompt, actual_film = self.get_system_prompt(film_type, system_prompt)
+
+        if debug == "enable":
+            print(f"[FILM TYPE] Selected: {actual_film}")
 
         # Prompt-Erstellung
         if context and context.strip():
@@ -272,20 +316,20 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
         real_model_name = self.extract_model_name(model)
 
         if model.startswith("openrouter/"):
-            output_text = self.call_openrouter(user_prompt, real_model_name, api_key, debug)[0]
+            output_text = self.call_openrouter(user_prompt, real_model_name, api_key, debug, final_system_prompt)[0]
         elif model.startswith("local/"):
-            output_text = self.call_ollama(user_prompt, real_model_name, debug, unload_model)[0]
+            output_text = self.call_ollama(user_prompt, real_model_name, debug, unload_model, final_system_prompt)[0]
         else:
             raise Exception(f"Unbekannter Modell-Prefix in '{model}'. Erwartet 'openrouter/' oder 'local/'.")
 
         return (output_text.strip(),)
 
-    def call_openrouter(self, prompt, model, api_key, debug):
+    def call_openrouter(self, prompt, model, api_key, debug, system_prompt):
         try:
             api_url, real_api_key = self.get_api_credentials(api_key)
             headers = {"Authorization": f"Bearer {real_api_key}", "Content-Type": "application/json"}
             messages = [
-                {"role": "system", "content": self.SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ]
             payload = {"model": model, "messages": messages, "temperature": 0.9}
@@ -320,16 +364,16 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
             if fallback_model != model:
                 if debug == "enable":
                     print(f"[FALLBACK] Versuche {fallback_model}")
-                return self.call_openrouter(prompt, fallback_model, api_key, debug)
+                return self.call_openrouter(prompt, fallback_model, api_key, debug, system_prompt)
             else:
                 return (f"[ERROR] Alle OpenRouter-Fallbacks fehlgeschlagen: {str(e)}",)
 
-    def call_ollama(self, prompt, model, debug, unload_model):
+    def call_ollama(self, prompt, model, debug, unload_model, system_prompt):
         try:
             payload = {
                 "model": model,
                 "prompt": prompt,
-                "system": self.SYSTEM_PROMPT,
+                "system": system_prompt,
                 "stream": False
             }
 
@@ -370,6 +414,6 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
             if fallback_model and fallback_model != model:
                 if debug == "enable":
                     print(f"[FALLBACK] Versuche {fallback_model}")
-                return self.call_ollama(prompt, fallback_model, debug, unload_model)
+                return self.call_ollama(prompt, fallback_model, debug, unload_model, system_prompt)
             else:
                 return (f"[ERROR] Ollama-Fallback fehlgeschlagen: {str(e)}",)
