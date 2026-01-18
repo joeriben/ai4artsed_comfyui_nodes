@@ -44,7 +44,6 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
                 "film_type": (list(cls.FILM_TYPES.keys()),),
                 "system_prompt": ("STRING", {"multiline": True, "default": cls.DEFAULT_SYSTEM_PROMPT}),
                 "model": (cls.get_combined_model_list(),),
-                "debug": (["disable", "enable"], {"default": "disable"}),
                 "unload_model": (["no", "yes"], {"default": "no"}),
             },
             "optional": {
@@ -126,11 +125,8 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
         else:
             return full_model_string
 
-    def find_openrouter_fallback(self, failed_model, api_key, debug):
+    def find_openrouter_fallback(self, failed_model, api_key):
         """Sucht ähnliches OpenRouter-Modell nur bei Fehlern"""
-        if debug == "enable":
-            print(f"[FALLBACK] Suche Ersatz für: {failed_model}")
-
         model_parts = failed_model.split("/")
         if len(model_parts) >= 2:
             provider = model_parts[0]
@@ -185,12 +181,7 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
 
             for candidate_model, priority in fallback_candidates:
                 try:
-                    if debug == "enable":
-                        print(f"[FALLBACK] Teste: {candidate_model} (Priorität: {priority})")
-
                     if self.test_openrouter_model(candidate_model, api_key):
-                        if debug == "enable":
-                            print(f"[FALLBACK] Erfolgreich: {candidate_model}")
                         return candidate_model
                 except:
                     continue
@@ -212,17 +203,12 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
         except:
             return False
 
-    def find_ollama_fallback(self, failed_model, debug):
+    def find_ollama_fallback(self, failed_model):
         """Sucht ähnliches Ollama-Modell nur bei Fehlern"""
-        if debug == "enable":
-            print(f"[FALLBACK] Suche Ollama-Ersatz für: {failed_model}")
-
         try:
             response = requests.get("http://localhost:11434/api/tags", timeout=5)
             available_models = [m.get('name', '') for m in response.json().get("models", [])]
         except:
-            if debug == "enable":
-                print("[FALLBACK] Ollama nicht erreichbar")
             return None
 
         if not available_models:
@@ -265,10 +251,7 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
         candidates.sort(key=lambda x: x[1], reverse=True)
 
         if candidates and candidates[0][1] > 0:
-            best_model = candidates[0][0]
-            if debug == "enable":
-                print(f"[FALLBACK] Gewählt: {best_model} (Score: {candidates[0][1]})")
-            return best_model
+            return candidates[0][0]
 
         return available_models[0] if available_models else None
 
@@ -298,14 +281,11 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
         film_description = self.FILM_TYPES[film_type]
         return system_prompt_template.format(film_description=film_description), film_type
 
-    def run(self, random_seed, film_type, system_prompt, model, debug, unload_model, api_key="", context=""):
+    def run(self, random_seed, film_type, system_prompt, model, unload_model, api_key="", context=""):
         # random_seed wird ignoriert - dient nur zum Cache-Breaking
 
         # Build system prompt with film type
         final_system_prompt, actual_film = self.get_system_prompt(film_type, system_prompt)
-
-        if debug == "enable":
-            print(f"[FILM TYPE] Selected: {actual_film}")
 
         # Prompt-Erstellung
         if context and context.strip():
@@ -316,15 +296,15 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
         real_model_name = self.extract_model_name(model)
 
         if model.startswith("openrouter/"):
-            output_text = self.call_openrouter(user_prompt, real_model_name, api_key, debug, final_system_prompt)[0]
+            output_text = self.call_openrouter(user_prompt, real_model_name, api_key, final_system_prompt)[0]
         elif model.startswith("local/"):
-            output_text = self.call_ollama(user_prompt, real_model_name, debug, unload_model, final_system_prompt)[0]
+            output_text = self.call_ollama(user_prompt, real_model_name, unload_model, final_system_prompt)[0]
         else:
             raise Exception(f"Unbekannter Modell-Prefix in '{model}'. Erwartet 'openrouter/' oder 'local/'.")
 
         return (output_text.strip(),)
 
-    def call_openrouter(self, prompt, model, api_key, debug, system_prompt):
+    def call_openrouter(self, prompt, model, api_key, system_prompt):
         try:
             api_url, real_api_key = self.get_api_credentials(api_key)
             headers = {"Authorization": f"Bearer {real_api_key}", "Content-Type": "application/json"}
@@ -338,37 +318,18 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
             if response.status_code == 200:
                 result = response.json()
                 output_text = result["choices"][0]["message"]["content"]
-
-                if debug == "enable":
-                    print("\n" + "="*60)
-                    print(">>> AI4ARTSED PHOTO PROMPT RANDOMIZER <<<")
-                    print("="*60)
-                    print(f"Model: openrouter/{model}")
-                    print("-" * 40)
-                    print("User prompt:")
-                    print(prompt)
-                    print("-" * 40)
-                    print("Generated prompt:")
-                    print(output_text)
-                    print("="*60)
-
                 return (output_text,)
             else:
                 raise Exception(f"API Error: {response.status_code}\n{response.text}")
 
         except Exception as e:
-            if debug == "enable":
-                print(f"[ERROR] Modell {model} fehlgeschlagen: {e}")
-
-            fallback_model = self.find_openrouter_fallback(model, api_key, debug)
+            fallback_model = self.find_openrouter_fallback(model, api_key)
             if fallback_model != model:
-                if debug == "enable":
-                    print(f"[FALLBACK] Versuche {fallback_model}")
-                return self.call_openrouter(prompt, fallback_model, api_key, debug, system_prompt)
+                return self.call_openrouter(prompt, fallback_model, api_key, system_prompt)
             else:
                 return (f"[ERROR] Alle OpenRouter-Fallbacks fehlgeschlagen: {str(e)}",)
 
-    def call_ollama(self, prompt, model, debug, unload_model, system_prompt):
+    def call_ollama(self, prompt, model, unload_model, system_prompt):
         try:
             payload = {
                 "model": model,
@@ -388,32 +349,13 @@ NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INST
                             requests.post("http://localhost:11434/api/generate", json=unload_payload, timeout=30)
                         except:
                             pass
-
-                    if debug == "enable":
-                        print("\n" + "="*60)
-                        print(">>> AI4ARTSED PHOTO PROMPT RANDOMIZER <<<")
-                        print("="*60)
-                        print(f"Model: local/{model}")
-                        print("-" * 40)
-                        print("User prompt:")
-                        print(prompt)
-                        print("-" * 40)
-                        print("Generated prompt:")
-                        print(output)
-                        print("="*60)
-
                     return (output,)
 
             raise Exception(f"Ollama Error: {response.status_code}")
 
         except Exception as e:
-            if debug == "enable":
-                print(f"[ERROR] Ollama-Modell {model} fehlgeschlagen: {e}")
-
-            fallback_model = self.find_ollama_fallback(model, debug)
+            fallback_model = self.find_ollama_fallback(model)
             if fallback_model and fallback_model != model:
-                if debug == "enable":
-                    print(f"[FALLBACK] Versuche {fallback_model}")
-                return self.call_ollama(prompt, fallback_model, debug, unload_model, system_prompt)
+                return self.call_ollama(prompt, fallback_model, unload_model, system_prompt)
             else:
                 return (f"[ERROR] Ollama-Fallback fehlgeschlagen: {str(e)}",)
