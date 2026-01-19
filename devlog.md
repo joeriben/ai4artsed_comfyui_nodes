@@ -1,5 +1,42 @@
 # AI4ArtsEd ComfyUI Nodes - Dev Log
 
+## 2026-01-19
+
+### Photo Prompt Randomizer - Film Types & Editable Prompt
+
+**Film Type Selector:**
+- Dropdown with 14 analog film stocks + random option
+- Slide films: Kodachrome, Ektachrome
+- Color negative: Portra 400/800, Ektar 100, Fuji Pro 400H/Superia, CineStill 800T
+- B&W: Ilford HP5/Delta 400/FP4/Pan F/XP2, Kodak Tri-X 400
+- `{film_description}` placeholder in prompt gets replaced by selected film
+
+**Editable System Prompt:**
+- System prompt now visible and editable in node UI
+- Users can customize prompt generation behavior
+- `{film_description}` placeholder for film type injection
+
+**Improved Default Prompt:**
+```
+You are an inventive creative. Your task is to invent a REALISTIC photographic image prompt.
+
+Think globally. Avoid cultural clichés. Avoid "retro" style descriptions.
+Describe contemporary everyday motives: scenes, objects, animals, nature, tech, culture, people, homes, family, work, holiday, urban, rural, trivia, details.
+
+Choose either unlikely, untypical or typical photographical sujets for realistic photographic images. Be verbose, provide intricate details.
+
+Always begin your output with: "{film_description} of".
+Transform the prompt strictly following the context if provided.
+
+NO META-COMMENTS, TITLES, Remarks, dialogue WHATSOEVER, STRICTLY FOLLOW THE INSTRUCTION.
+```
+
+**UI Cleanup:**
+- Removed `debug` field (unnecessary clutter)
+- Final inputs: random_seed, film_type, system_prompt, model, unload_model, api_key (opt), context (opt)
+
+---
+
 ## 2026-01-18
 
 ### Photo Prompt Randomizer Node
