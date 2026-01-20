@@ -30,16 +30,16 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "ai4artsed_text_remix": "AI4ArtsEd Text Remix",
-    "ai4artsed_random_instruction_generator": "Random Instruction Generator",
-    "ai4artsed_random_artform_generator": "Random Artform Generator",
-    "ai4artsed_random_language_selector": "Random Language Selector",
-    "ai4artsed_openrouter_key": "Secure Access to OpenRouter API Key",
-    "ai4artsed_t5_clip_fusion": "AI4ArtsEd T5‑CLIP Fusion",
+    "ai4artsed_random_instruction_generator": "AI4ArtsEd Random Instruction Generator",
+    "ai4artsed_random_artform_generator": "AI4ArtsEd Random Artform Generator",
+    "ai4artsed_random_language_selector": "AI4ArtsEd Random Language Selector",
+    "ai4artsed_openrouter_key": "AI4ArtsEd OpenRouter Key",
+    "ai4artsed_t5_clip_fusion": "AI4ArtsEd T5-CLIP Fusion",
     "ai4artsed_conditioning_fusion": "AI4ArtsEd Conditioning Fusion",
     "ai4artsed_prompt_interception": "AI4ArtsEd Prompt Interception",
     "ai4artsed_image_analysis": "AI4ArtsEd Image Analysis",
     "ai4artsed_vector_dimension_eliminator": "AI4ArtsEd Vector Dimension Eliminator",
     "ai4artsed_switch_promptsafety": "AI4ArtsEd Promptsafety Switch",
-    "ai4artsed_photo_prompt_randomizer": "Photo Prompt Randomizer",
-    "ai4artsed_clean_prompt_randomizer": "Clean Prompt Randomizer",
+    "ai4artsed_photo_prompt_randomizer": "AI4ArtsEd Photo Prompt Randomizer",
+    "ai4artsed_clean_prompt_randomizer": "AI4ArtsEd Clean Prompt Randomizer",
 }
