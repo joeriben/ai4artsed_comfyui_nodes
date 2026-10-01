@@ -32,4 +32,6 @@ keywords:
   - "cultural-aesthetic education"
   - "ComfyUI"
 license: EUPL-1.2
+version: 2.0.0-beta.1
+release-date: "2026-10-01"
 commit: ddd40dda23fd3794182906ee25b019a5b2895055
