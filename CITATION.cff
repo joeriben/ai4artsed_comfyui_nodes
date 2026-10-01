@@ -1,0 +1,35 @@
+# This CITATION.cff file was generated in order to comply with the
+# requirements of the research project AI4ArtsEd (FKZ 01JKT2408A),
+# funded by the German Federal Ministry of Education and Research (BMBF).
+# Please use the metadata provided below.
+---
+cff-version: 1.2.0
+title: "AI4ArtsEd AI Lab ComfyUI Nodes: Custom Nodes for AI4ArtsEd Werkraum (AI for Arts Education)"
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - family-names: "Jörissen"
+    given-names: "Benjamin"
+    email: "joerissen@gmail.com"
+identifiers:
+  - type: url
+    value: "https://github.com/joeriben/ai4artsed_comfyui_nodes"
+    description: "Repository"
+repository-code: "https://github.com/joeriben/ai4artsed_comfyui_nodes"
+url: "https://github.com/joeriben/ai4artsed_comfyui_nodes"
+abstract: >-
+  Custom ComfyUI nodes of the AI4ArtsEd AI Lab: prompt
+  interception, conditioning fusion, image analysis, prompt
+  randomizers and helper nodes supporting critical,
+  pedagogically reflected use of generative AI in
+  cultural-aesthetic education.
+keywords:
+  - "AI4ArtsEd"
+  - "generative AI"
+  - "arts education"
+  - "cultural-aesthetic education"
+  - "ComfyUI"
+license: EUPL-1.2
+commit: ddd40dda23fd3794182906ee25b019a5b2895055
